@@ -12,7 +12,7 @@ bot.on('message', async (msg) => {
   if (text === '/start') {
     await bot.sendMessage(chatId, 'Ниже появится форма кнопка, заполни форму', {
       reply_markup: {
-        keyboard: [[{ text: 'Заполнить форму', web_app: { url: webAppUrl } }]],
+        keyboard: [[{ text: 'Заполнить форму', web_app: { url: webAppUrl + '/form' } }]],
       },
     })
 
@@ -27,5 +27,23 @@ bot.on('message', async (msg) => {
         },
       }
     )
+  }
+
+  if(msg?.web_app_data?.data) {
+    try {
+      const data = JSON.parse(msg?.web_app_data?.data)
+
+      await bot.sendMessage(chatId, 'Спасибо за обратную связь!')
+      await bot.sendMessage(chatId, 'Ваша страна ' + data?.country)
+      await bot.sendMessage(chatId, 'Ваша улица ' + data?.street)
+
+      setTimeout(async () => {
+        await bot.sendMessage(chatId, 'Всю информафию вы получите в этом чате')
+
+      }, 3000)
+    } catch (e) {
+      console.log(e)
+    }
+
   }
 })
