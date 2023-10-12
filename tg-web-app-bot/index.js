@@ -1,9 +1,15 @@
 const TelegramBot = require('node-telegram-bot-api')
+const express = require('express')
+const cors = require('cors')
 
 const token = '5807424138:AAGNGvTPCru4Bf0luDgk2pMPvN5lRWIwe1g'
 const webAppUrl = 'https://inquisitive-trifle-29664b.netlify.app'
 
 const bot = new TelegramBot(token, { polling: true })
+const app = express()
+
+app.use(express.json())
+app.use(cors())
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id
@@ -12,7 +18,9 @@ bot.on('message', async (msg) => {
   if (text === '/start') {
     await bot.sendMessage(chatId, 'Ниже появится форма кнопка, заполни форму', {
       reply_markup: {
-        keyboard: [[{ text: 'Заполнить форму', web_app: { url: webAppUrl + '/form' } }]],
+        keyboard: [
+          [{ text: 'Заполнить форму', web_app: { url: webAppUrl + '/form' } }],
+        ],
       },
     })
 
@@ -29,7 +37,7 @@ bot.on('message', async (msg) => {
     )
   }
 
-  if(msg?.web_app_data?.data) {
+  if (msg?.web_app_data?.data) {
     try {
       const data = JSON.parse(msg?.web_app_data?.data)
 
@@ -39,11 +47,36 @@ bot.on('message', async (msg) => {
 
       setTimeout(async () => {
         await bot.sendMessage(chatId, 'Всю информафию вы получите в этом чате')
-
       }, 3000)
     } catch (e) {
       console.log(e)
     }
-
   }
 })
+
+app.post('/web-data', async (req, res) => {
+  const { queryId, products = [], totalPrice } = req.body
+  try {
+    await bot.answerWebAppQuery(queryId, {
+      type: 'article',
+      id: queryId,
+      title: 'Успешная покупка',
+      input_message_content: {
+        message_text: `Поздравляю с покупкой, вы приобрели товар на сумму ${totalPrice}, ${products.map((item) => item.title).join(', ')}`,
+      },
+    })
+    return res.status(200).json({})
+  } catch (e) {
+    await bot.answerWebAppQuery(queryId, {
+      type: 'article',
+      id: queryId,
+      title: 'Не удалось приобрести товар',
+      input_message_content: { message_text: 'Не удалось приобрести товар' },
+    })
+    return res.status(500).json({})
+  }
+})
+
+const PORT = 8000
+
+app.listen(PORT, () => console.log('server started on PORT ' + PORT))
